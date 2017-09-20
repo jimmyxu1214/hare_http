@@ -137,10 +137,16 @@ public class HttpClientFactory {
 	 * @param keyStoreFile
 	 *            客户端证书
 	 * @param keyStorePassword
+	 * 
+	 * @param protocol
+	 *            <pre>
+	 *            protocol jdk1.6 jdk1.7 默认TLSv1, jdk1.8 默认 TLSv1.2
+	 *            protocol支持: TLSv1.2 TLSv1.1 TLSv1 SSLv3
+	 * </pre>
 	 * @return
 	 */
 	// TODO 本方法还需要根据实际情况修改
-	public static SSLConnectionSocketFactory createSSLConnectionSocketFactory(File trustStoreFile, File keyStoreFile, String keyStorePassword) {
+	public static SSLConnectionSocketFactory createSSLConnectionSocketFactory(File trustStoreFile, File keyStoreFile, String keyStorePassword, String protocol) {
 		InputStream trustIn = null;
 		InputStream keyIn = null;
 		KeyStore trustStore = null;
@@ -157,6 +163,9 @@ public class HttpClientFactory {
 				keyStore.load(keyIn, keyStorePassword.toCharArray());
 			}
 			SSLContextBuilder sslContextBuilder = SSLContexts.custom();
+			if (protocol != null) {
+				sslContextBuilder.useProtocol(protocol);
+			}
 			if (trustStore != null) {
 				sslContextBuilder.loadTrustMaterial(trustStore, new TrustSelfSignedStrategy());
 			} else {
@@ -197,11 +206,16 @@ public class HttpClientFactory {
 	}
 
 	/**
-	 * 创建一个信任所有证书的SSLConnectionFactory
+	 * 创建一个信任所有证书的SSLConnectionFactory protocol jdk1.6 jdk1.7 默认TLSv1 jdk1.8 默认
+	 * 
+	 * @param protocol
+	 *            <pre>
+	 *            protocol jdk1.6 jdk1.7 默认TLSv1, jdk1.8 默认 TLSv1.2
+	 *            protocol支持: TLSv1.2 TLSv1.1 TLSv1 SSLv3
 	 * 
 	 * @return
 	 */
-	public static SSLConnectionSocketFactory createTrustAllSSLConnectionSocketFactory() {
+	public static SSLConnectionSocketFactory createTrustAllSSLConnectionSocketFactory(String protocol) {
 		try {
 			TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
 				public X509Certificate[] getAcceptedIssuers() {
@@ -216,7 +230,11 @@ public class HttpClientFactory {
 				public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
 				}
 			} };
-			SSLContext sslContext = SSLContext.getInstance("TLS");
+			SSLContextBuilder sslContextBuilder = SSLContexts.custom();
+			if (protocol != null) {
+				sslContextBuilder.useProtocol(protocol);
+			}
+			SSLContext sslContext = sslContextBuilder.build();
 			sslContext.init(null, trustAllCerts, new SecureRandom());
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.getDefaultHostnameVerifier());
 			return sslsf;
